@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Automated Outreach Pipeline Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-color: #080710;
+      --glass-bg: rgba(255, 255, 255, 0.03);
+      --glass-border: rgba(255, 255, 255, 0.08);
+      --text-primary: #ffffff;
+      --text-secondary: #b3b3cc;
+      --accent-blue: #3b82f6;
+      --accent-purple: #8b5cf6;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Outfit', sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.15) 0%, transparent 40%);
+      background-attachment: fixed;
+      color: var(--text-primary);
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--glass-border);
+    }
+
+    .logo-container h1 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--accent-blue) 0%, var(--accent-purple) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .logo-container p {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      margin-top: 0.2rem;
+    }
+
+    .server-status {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 50px;
+      font-size: 0.85rem;
+      backdrop-filter: blur(10px);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background-color: var(--success);
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--success);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+      70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+
+    /* Grid Layout */
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+
+    @media (min-width: 768px) {
+      .grid {
+        grid-template-columns: 3fr 1fr;
+      }
+    }
+
+    /* Card styling */
+    .card {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      padding: 1.5rem;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+    }
+
+    .card-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: var(--text-primary);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Stats Panel */
+    .stats-container {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .stat-box {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      padding: 1rem;
+      text-align: center;
+    }
+
+    .stat-val {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--accent-blue);
+      margin-bottom: 0.2rem;
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Tabs styling */
+    .tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+      overflow-x: auto;
+      padding-bottom: 0.5rem;
+    }
+
+    .tab-btn {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      color: var(--text-secondary);
+      padding: 0.6rem 1.2rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 0.9rem;
+      white-space: nowrap;
+      transition: all 0.2s ease;
+    }
+
+    .tab-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-primary);
+    }
+
+    .tab-btn.active {
+      background: linear-gradient(135deg, var(--accent-blue) 0%, var(--accent-purple) 100%);
+      border-color: transparent;
+      color: var(--text-primary);
+      box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+    }
+
+    /* Tables */
+    .table-wrapper {
+      overflow-x: auto;
+      border-radius: 8px;
+      border: 1px solid var(--glass-border);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.9rem;
+    }
+
+    th {
+      background-color: rgba(255, 255, 255, 0.04);
+      padding: 0.8rem 1rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      border-bottom: 1px solid var(--glass-border);
+    }
+
+    td {
+      padding: 0.8rem 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      color: var(--text-secondary);
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background-color: rgba(255, 255, 255, 0.01);
+      color: var(--text-primary);
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.6rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .badge-blue { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+    .badge-green { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .badge-yellow { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .badge-red { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+
+    /* Pipeline Flow UI */
+    .pipeline-flow {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .step-box {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      position: relative;
+    }
+
+    .step-box.active {
+      border-color: var(--accent-blue);
+      background: rgba(59, 130, 246, 0.03);
+      box-shadow: 0 0 15px rgba(59, 130, 246, 0.1);
+    }
+
+    .step-box.completed {
+      border-color: var(--success);
+      background: rgba(16, 185, 129, 0.03);
+    }
+
+    .step-num {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+
+    .step-box.active .step-num {
+      background: var(--accent-blue);
+      border-color: transparent;
+      color: var(--text-primary);
+    }
+
+    .step-box.completed .step-num {
+      background: var(--success);
+      border-color: transparent;
+      color: var(--text-primary);
+    }
+
+    .step-info {
+      flex: 1;
+    }
+
+    .step-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+
+    .step-desc {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      margin-top: 0.15rem;
+    }
+
+    .linkedin-link {
+      color: #60a5fa;
+      text-decoration: none;
+    }
+    .linkedin-link:hover {
+      text-decoration: underline;
+    }
+
+    .empty-state {
+      padding: 3rem;
+      text-align: center;
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+    }
+
+    .empty-state svg {
+      width: 48px;
+      height: 48px;
+      margin-bottom: 1rem;
+      stroke: var(--text-secondary);
+      opacity: 0.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo-container">
+        <h1>Automated Outreach Pipeline</h1>
+        <p>Real-time execution dashboard for lookalike prospecting and cold emails</p>
+      </div>
+      <div class="server-status">
+        <div class="status-dot"></div>
+        <span>Live Monitor Active</span>
+      </div>
+    </header>
+
+    <div class="grid">
+      <!-- Main Panel -->
+      <main>
+        <div class="tabs">
+          <button class="tab-btn active" onclick="switchTab('overview')">Overview</button>
+          <button class="tab-btn" onclick="switchTab('companies')">Similar Companies</button>
+          <button class="tab-btn" onclick="switchTab('contacts')">Found Decision Makers</button>
+          <button class="tab-btn" onclick="switchTab('emails')">Verified Emails</button>
+          <button class="tab-btn" onclick="switchTab('summary')">Email Log</button>
+        </div>
+
+        <!-- Tab 1: Overview -->
+        <div id="tab-overview" class="tab-content card">
+          <div class="card-title">Pipeline Monitor</div>
+          <div class="stats-container">
+            <div class="stat-box">
+              <div id="stat-companies" class="stat-val">0</div>
+              <div class="stat-label">Lookalike Domains</div>
+            </div>
+            <div class="stat-box">
+              <div id="stat-contacts" class="stat-val">0</div>
+              <div class="stat-label">Contacts Scraped</div>
+            </div>
+            <div class="stat-box">
+              <div id="stat-verified" class="stat-val">0</div>
+              <div class="stat-label">Verified Emails</div>
+            </div>
+            <div class="stat-box">
+              <div id="stat-sent" class="stat-val">0</div>
+              <div class="stat-label">Emails Delivered</div>
+            </div>
+          </div>
+
+          <div style="margin-top: 1.5rem;">
+            <h3 style="font-size: 1.1rem; font-weight:600; margin-bottom: 1rem;">Execution Flow Progress</h3>
+            <div class="pipeline-flow">
+              <div id="step-1" class="step-box">
+                <div class="step-num">1</div>
+                <div class="step-info">
+                  <div class="step-title">Stage 1: Ocean.io Integration</div>
+                  <div class="step-desc">Extract lookalike company domains for the target keyword/domain.</div>
+                </div>
+                <div id="step-1-badge" class="badge">Idle</div>
+              </div>
+
+              <div id="step-2" class="step-box">
+                <div class="step-num">2</div>
+                <div class="step-info">
+                  <div class="step-title">Stage 2: Prospeo Search</div>
+                  <div class="step-desc">Query target domains for executive contacts (CEO, CTO, Founder, VP).</div>
+                </div>
+                <div id="step-2-badge" class="badge">Idle</div>
+              </div>
+
+              <div id="step-3" class="step-box">
+                <div class="step-num">3</div>
+                <div class="step-info">
+                  <div class="step-title">Stage 3: Eazyreach Enrichment</div>
+                  <div class="step-desc">Resolve LinkedIn URLs to fully verified work email addresses.</div>
+                </div>
+                <div id="step-3-badge" class="badge">Idle</div>
+              </div>
+
+              <div id="step-4" class="step-box">
+                <div class="step-num">4</div>
+                <div class="step-info">
+                  <div class="step-title">Stage 4: Brevo Cold Email Outreach</div>
+                  <div class="step-desc">Generate templates and execute transactional outreach campaigns.</div>
+                </div>
+                <div id="step-4-badge" class="badge">Idle</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 2: Similar Companies -->
+        <div id="tab-companies" class="tab-content card" style="display: none;">
+          <div class="card-title">Similar Companies (Ocean.io Results)</div>
+          <div id="companies-list" class="table-wrapper">
+            <table id="table-companies">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Company Domain</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div id="companies-empty" class="empty-state" style="display: none;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line></svg>
+            <p>No similar companies found. Start the pipeline first.</p>
+          </div>
+        </div>
+
+        <!-- Tab 3: Decision Makers -->
+        <div id="tab-contacts" class="tab-content card" style="display: none;">
+          <div class="card-title">Target Decision Makers (Prospeo Results)</div>
+          <div id="contacts-list" class="table-wrapper">
+            <table id="table-contacts-list">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Title</th>
+                  <th>Company Name</th>
+                  <th>Domain</th>
+                  <th>LinkedIn Profile</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div id="contacts-empty" class="empty-state" style="display: none;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            <p>No contact profiles scraped yet.</p>
+          </div>
+        </div>
+
+        <!-- Tab 4: Verified Emails -->
+        <div id="tab-emails" class="tab-content card" style="display: none;">
+          <div class="card-title">Enriched Contact Emails (Eazyreach Results)</div>
+          <div id="emails-list" class="table-wrapper">
+            <table id="table-emails-list">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Designation</th>
+                  <th>Company Name</th>
+                  <th>Email</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div id="emails-empty" class="empty-state" style="display: none;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+            <p>No verified emails found yet.</p>
+          </div>
+        </div>
+
+        <!-- Tab 5: Email Log -->
+        <div id="tab-summary" class="tab-content card" style="display: none;">
+          <div class="card-title">Transactional Delivery Log (Brevo Results)</div>
+          <div id="summary-list" class="table-wrapper">
+            <table id="table-summary-list">
+              <thead>
+                <tr>
+                  <th>Recipient Name</th>
+                  <th>Email Address</th>
+                  <th>Sent At</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div id="summary-empty" class="empty-state" style="display: none;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12,6 12,12 16,14"></polyline></svg>
+            <p>Outreach emails have not been dispatched.</p>
+          </div>
+        </div>
+      </main>
+
+      <!-- Sidebar -->
+      <aside>
+        <div class="card">
+          <div class="card-title">Active Run Details</div>
+          <div style="font-size: 0.9rem; display: flex; flex-direction: column; gap: 0.8rem;">
+            <div>
+              <span style="color: var(--text-secondary); display:block; font-size: 0.75rem; text-transform:uppercase;">Target Domain</span>
+              <strong id="side-domain">-</strong>
+            </div>
+            <div>
+              <span style="color: var(--text-secondary); display:block; font-size: 0.75rem; text-transform:uppercase;">Current Action</span>
+              <span id="side-action" class="badge badge-blue">Idle</span>
+            </div>
+            <div id="side-progress-container" style="display: none;">
+              <span style="color: var(--text-secondary); display:block; font-size: 0.75rem; text-transform:uppercase; margin-bottom: 0.2rem;">Pipeline Phase</span>
+              <div style="width: 100%; height: 6px; background: rgba(255,255,255,0.05); border-radius: 3px; overflow: hidden;">
+                <div id="side-progress-bar" style="width: 0%; height: 100%; background: linear-gradient(95deg, var(--accent-blue), var(--accent-purple)); transition: width 0.3s ease;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    let activeTab = 'overview';
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(content => content.style.display = 'none');
+      
+      event.currentTarget.classList.add('active');
+      document.getElementById(`tab-${tabId}`).style.display = 'block';
+      activeTab = tabId;
+      refreshData();
+    }
+
+    async function refreshData() {
+      try {
+        // Fetch state
+        const stateRes = await fetch('/api/state');
+        const state = await stateRes.json();
+
+        // Update Sidebar and Overview elements
+        if (state.active !== false && state.targetDomain) {
+          document.getElementById('side-domain').textContent = state.targetDomain;
+          
+          let step = state.currentStage || 1;
+          document.getElementById('side-progress-container').style.display = 'block';
+          document.getElementById('side-progress-bar').style.width = `${(step - 1) * 25}%`;
+
+          const stages = {
+            1: 'Ocean.io Search',
+            2: 'Prospeo Scraper',
+            3: 'Eazyreach Enriched',
+            4: 'Brevo Delivery',
+            5: 'Completed'
+          };
+          
+          document.getElementById('side-action').textContent = stages[step] || 'Idle';
+          document.getElementById('side-action').className = `badge ${step === 5 ? 'badge-green' : 'badge-blue'}`;
+
+          // Update flow visualizers
+          for (let s = 1; s <= 4; s++) {
+            const el = document.getElementById(`step-${s}`);
+            const badge = document.getElementById(`step-${s}-badge`);
+            if (s < step) {
+              el.className = 'step-box completed';
+              badge.className = 'badge badge-green';
+              badge.textContent = 'Completed';
+            } else if (s === step) {
+              el.className = 'step-box active';
+              badge.className = 'badge badge-blue';
+              badge.textContent = 'Active';
+            } else {
+              el.className = 'step-box';
+              badge.className = 'badge';
+              badge.textContent = 'Idle';
+            }
+          }
+        } else {
+          document.getElementById('side-domain').textContent = 'None';
+          document.getElementById('side-action').textContent = 'Idle';
+          document.getElementById('side-action').className = 'badge';
+          document.getElementById('side-progress-container').style.display = 'none';
+
+          for (let s = 1; s <= 4; s++) {
+            document.getElementById(`step-${s}`).className = 'step-box';
+            const badge = document.getElementById(`step-${s}-badge`);
+            badge.className = 'badge';
+            badge.textContent = 'Idle';
+          }
+        }
+
+        // Fetch individual stages
+        const compRes = await fetch('/api/companies');
+        const companies = await compRes.json();
+        document.getElementById('stat-companies').textContent = Array.isArray(companies) ? companies.length : 0;
+
+        const contRes = await fetch('/api/contacts');
+        const contacts = await contRes.json();
+        document.getElementById('stat-contacts').textContent = Array.isArray(contacts) ? contacts.length : 0;
+
+        const emailRes = await fetch('/api/emails');
+        const emails = await emailRes.json();
+        document.getElementById('stat-verified').textContent = Array.isArray(emails) ? emails.length : 0;
+
+        const sumRes = await fetch('/api/summary');
+        const summary = await sumRes.json();
+        const successCount = Array.isArray(summary) ? summary.filter(s => s.status === 'success' || s.status === 'previously_sent').length : 0;
+        document.getElementById('stat-sent').textContent = successCount;
+
+        // Render Tab-specific elements
+        if (activeTab === 'companies') {
+          renderCompanies(companies);
+        } else if (activeTab === 'contacts') {
+          renderContacts(contacts);
+        } else if (activeTab === 'emails') {
+          renderEmails(emails);
+        } else if (activeTab === 'summary') {
+          renderSummary(summary);
+        }
+
+      } catch (err) {
+        console.error('Error fetching dashboard data:', err);
+      }
+    }
+
+    function renderCompanies(data) {
+      const tbody = document.querySelector('#table-companies tbody');
+      tbody.innerHTML = '';
+      if (!Array.isArray(data) || data.length === 0) {
+        document.getElementById('companies-list').style.display = 'none';
+        document.getElementById('companies-empty').style.display = 'block';
+        return;
+      }
+      document.getElementById('companies-list').style.display = 'block';
+      document.getElementById('companies-empty').style.display = 'none';
+
+      data.forEach((domain, idx) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${idx + 1}</td>
+          <td><strong>${domain}</strong></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderContacts(data) {
+      const tbody = document.querySelector('#table-contacts-list tbody');
+      tbody.innerHTML = '';
+      if (!Array.isArray(data) || data.length === 0) {
+        document.getElementById('contacts-list').style.display = 'none';
+        document.getElementById('contacts-empty').style.display = 'block';
+        return;
+      }
+      document.getElementById('contacts-list').style.display = 'block';
+      document.getElementById('contacts-empty').style.display = 'none';
+
+      data.forEach(c => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${c.name}</strong></td>
+          <td>${c.title}</td>
+          <td>${c.companyName}</td>
+          <td>${c.companyDomain}</td>
+          <td><a href="${c.linkedin}" target="_blank" class="linkedin-link">${c.linkedin}</a></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderEmails(data) {
+      const tbody = document.querySelector('#table-emails-list tbody');
+      tbody.innerHTML = '';
+      if (!Array.isArray(data) || data.length === 0) {
+        document.getElementById('emails-list').style.display = 'none';
+        document.getElementById('emails-empty').style.display = 'block';
+        return;
+      }
+      document.getElementById('emails-list').style.display = 'block';
+      document.getElementById('emails-empty').style.display = 'none';
+
+      data.forEach(c => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${c.name}</strong></td>
+          <td>${c.title || 'Leader'}</td>
+          <td>${c.companyName}</td>
+          <td><span style="color:#ffffff; font-weight:500;">${c.email}</span></td>
+          <td><span class="badge badge-green">Verified</span></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderSummary(data) {
+      const tbody = document.querySelector('#table-summary-list tbody');
+      tbody.innerHTML = '';
+      if (!Array.isArray(data) || data.length === 0) {
+        document.getElementById('summary-list').style.display = 'none';
+        document.getElementById('summary-empty').style.display = 'block';
+        return;
+      }
+      document.getElementById('summary-list').style.display = 'block';
+      document.getElementById('summary-empty').style.display = 'none';
+
+      data.forEach(s => {
+        const tr = document.createElement('tr');
+        const badgeClass = (s.status === 'success' || s.status === 'previously_sent') ? 'badge-green' : 'badge-red';
+        const dateStr = s.sentAt ? new Date(s.sentAt).toLocaleTimeString() : 'N/A';
+        tr.innerHTML = `
+          <td><strong>${s.name}</strong></td>
+          <td>${s.email}</td>
+          <td>${dateStr}</td>
+          <td><span class="badge ${badgeClass}">${s.status.toUpperCase()}</span></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Refresh every 3 seconds
+    setInterval(refreshData, 3000);
+    window.onload = refreshData;
+  </script>
+</body>
+</html>
