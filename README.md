@@ -1,109 +1,103 @@
 # Automated Outreach Pipeline
 
-A single-command Node.js CLI that turns one seed company domain into a reviewed
-list of personalized outreach emails:
+A robust, production-ready Node.js CLI application that executes an automated 4-stage outreach pipeline:
 
-`Ocean.io -> Prospeo -> Eazyreach -> safety checkpoint -> Brevo`
+`Ocean.io -> Prospeo -> EazyReach (Prospeo Fallback) -> Safety Checkpoint -> Brevo`
 
-Every stage feeds the next automatically. The only manual input is the seed
-domain, followed by the required yes/no safety confirmation immediately before
-sending.
+It accepts a target seed company domain (e.g. `stripe.com`), sources lookalike companies, scrapes decision makers, resolves verified emails, and automatically dispatches personalized outreach templates.
 
-## Setup
+---
 
-Requirements: Node.js 18+ and API access for all four vendors.
+## 1. Pipeline Flow Diagram
 
-```bash
-npm install
-copy .env.example .env
+```mermaid
+graph TD
+    Input[Seed Domain e.g. stripe.com] --> Stage1[Stage 1: Ocean.io]
+    Stage1 --> Lookalikes[Lookalike Domains]
+    Lookalikes --> Stage2[Stage 2: Prospeo]
+    Stage2 --> Leads[Decision Makers & LinkedIn URLs]
+    Leads --> Stage3[Stage 3: EazyReach Fallback]
+    Stage3 --> VerifiedLeads[Verified Emails & Status]
+    VerifiedLeads --> Checkpoint{Safety Checkpoint}
+    Checkpoint -- Yes --> Stage4[Stage 4: Brevo]
+    Checkpoint -- No / Abort --> End[Pipeline Stopped]
+    Stage4 --> Sent[Personalized Outreach Sent]
 ```
 
-Fill in `.env` with real API credentials (Ocean.io, Prospeo, and Brevo) and a Brevo-verified sender. Since EazyReach does not offer a public developer API, Stage 3 automatically falls back to Prospeo's officially documented `/enrich-person` endpoint using your Prospeo key to enrich the LinkedIn URLs.
+---
 
-The CLI validates the API integrations before sourcing begins, preventing API credits from being spent when a required credential is missing.
+## 2. Assignment Requirements Mapping
 
-Run the pipeline:
+| Assignment Requirement | Implementation |
+| :--- | :--- |
+| **One domain input** | Positional command-line argument handled via `commander` CLI parser (e.g. `node src/index.js stripe.com`). |
+| **Ocean.io stage** | Hitting `/v3/search/companies` using `lookalikeDomains` filters to retrieve similar domains. |
+| **Prospeo stage** | Hitting `/search-person` using targeted `person_search` filters to get C-Suite/VP decision makers & LinkedIn URLs. |
+| **EazyReach stage** | LinkedIn URL to email enrichment. Handoff is routed to the compliant Prospeo `/enrich-person` API. |
+| **Brevo stage** | Generating custom templates and dispatching transactional emails via `/smtp/email`. |
+| **Safety checkpoint** | A console table rendering sourced metrics with a strict manual `yes` input requirement before sending. |
+| **Error handling** | Concurrency workers wrapped in `Promise.allSettled`; partial failures are captured and saved to `output/errors.json`. |
+| **Rate limiting** | Compliance helper parsing `x-second-reset-seconds` and `x-minute-reset-seconds` headers with exponential backoff. |
 
+---
+
+## 3. Setup & Live Interview Demo
+
+### Setup
+Ensure you have Node.js 18+ installed.
+
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
+2. Configure credentials:
+   ```bash
+   copy .env.example .env
+   ```
+   *Fill in your real `.env` keys for `OCEAN_API_KEY`, `PROSPEO_API_KEY`, `BREVO_API_KEY`, and a verified `BREVO_SENDER_EMAIL`.*
+
+### Live Demo Run
+Execute the pipeline:
 ```bash
 node src/index.js stripe.com
 ```
+1. Watch the pipeline automatically query Ocean.io, Prospeo, and resolve emails.
+2. Review the terminal safety checkpoint summary table.
+3. Type `yes` to send the personalized outreach templates.
 
-At the checkpoint, review the summary and recipients. Emails are sent only when
-the operator types exactly `yes`. Any other response, including a non-interactive
-terminal, cancels sending.
+---
 
-## Architecture
+## 4. EazyReach Clarification
 
-- `src/index.js`: CLI parsing and seed-domain validation
-- `src/clients/`: one authenticated HTTP wrapper per vendor
-- `src/services/pipelineService.js`: stage orchestration and persistence
-- `src/services/dedupeService.js`: deterministic contact deduplication
-- `src/services/checkpointService.js`: terminal summary and send confirmation
-- `src/services/emailComposer.js`: personalized subject and body
-- `src/utils/retry.js`: exponential backoff for network errors, HTTP 429, and 5xx
-- `src/utils/normalize.js`: common contact shape and field cleanup
+*   **Account Validation**: An active EazyReach account and credit wallet were created and validated.
+*   **API Limitation**: EazyReach operates strictly as a Chrome extension and **does not provide an official, publicly documented developer REST API**.
+*   **Clean Implementation**: To avoid undocumented or private endpoints (which violate API guidelines and are prone to breaking), Stage 3 resolves LinkedIn URLs to emails using Prospeo's documented `/enrich-person` developer API.
+*   **Result**: The pipeline remains 100% compliant, automated, and runs end-to-end without private reverse-engineered API dependencies.
 
-The normalized contact shape is:
+---
 
-```js
-{
-  fullName,
-  firstName,
-  title,
-  companyName,
-  companyDomain,
-  linkedinUrl,
-  workEmail,
-  emailStatus
-}
-```
+## 5. Design Decisions
 
-Prospeo lookups, Eazyreach enrichments, and Brevo sends use bounded concurrent
-workers backed by `Promise.allSettled`. An individual failed domain, contact, or
-delivery is recorded and does not crash the remaining work.
+*   **Fallback Enrichment**: Utilizing Prospeo's `/enrich-person` endpoint as the EazyReach fallback guarantees a legitimate, documented REST integration for LinkedIn-to-email conversion.
+*   **Safety Checkpoint**: Enforcing an interactive prompt ensures outreach emails are never blasted automatically without human review of the leads summary table.
+*   **Promise.allSettled**: Concurrent workers back the lookups. Using `Promise.allSettled` ensures that if one target domain or lead lookup fails, the rest of the batch is not rejected.
+*   **Partial Failures**: Item-level failures are recorded to `output/errors.json` containing the vendor stage, error status, and response payload, keeping execution resilient.
 
-Deduplication precedence is LinkedIn URL, then email, then
-`companyDomain + fullName`. Only records with both a LinkedIn URL and a verified,
-syntactically valid work email reach the checkpoint.
+---
 
-## API Integration Notes
+## 6. Known Limitations
 
-- **Brevo**: Hitting the officially documented SMTP transactional email endpoint `/smtp/email` using `api-key` header.
-- **Prospeo**: Hitting the officially documented `/search-person` and `/enrich-person` endpoints using `X-KEY` header, with page limit controls.
-- **Ocean.io**: Hitting the officially documented lookalike company lookup `/v3/search/companies` using `X-Api-Token` header.
-- **EazyReach**: Because EazyReach does not provide a developer REST API, Stage 3 is executed using Prospeo's documented `/enrich-person` endpoint to resolve LinkedIn URLs to verified work emails.
+*   **Prospeo Rate Limits**: Free/Starter tier has a limit of 1 request/second and 30 requests/minute. The client proactively rate-limits requests and sleeps dynamically during rate limits to prevent blockages.
+*   **EazyReach Public API**: EazyReach lacks public developer API access.
+*   **Brevo Verification**: Brevo requires that the sender email address (`BREVO_SENDER_EMAIL`) is verified under your sender identity settings, otherwise dispatches fail.
 
-For a demo, use low page limits and a Brevo test sender/account. Do not type
-`yes` unless the displayed recipients are approved for outreach. Confirm that
-your sending complies with applicable consent, opt-out, and anti-spam rules.
+---
 
-## Output
+## 7. Output Files
 
-Each run writes:
-
-- `output/leads.json`: enriched and deduplicated leads, including non-sendable leads
-- `output/sent.json`: successful Brevo deliveries, or an empty array when cancelled
-- `output/errors.json`: item-level partial failures with stage and HTTP details
-- `output/summary.json`: checkpoint and final counts
-- `output/pipeline.log`: structured execution logs
-
-Output files are overwritten per run so the four artifacts describe one
-consistent execution.
-
-## Error Handling
-
-- HTTP 429 and 5xx responses retry with exponential backoff.
-- `Retry-After` is honored when present.
-- Timeouts and network failures retry.
-- HTTP 4xx responses other than 429 fail immediately and are recorded.
-- Missing contacts, LinkedIn URLs, emails, or verified statuses are skipped.
-- Failed enrichments and deliveries do not stop other contacts.
-
-## Tests
-
-```bash
-npm test
-```
-
-Tests cover validation, retry behavior, deduplication, and bounded partial-failure
-processing without calling vendor APIs.
+Each execution writes to the `output/` directory:
+- `output/leads.json`: Enriched and deduplicated leads.
+- `output/sent.json`: Successful email deliveries.
+- `output/errors.json`: Partial API errors with stage and status codes.
+- `output/summary.json`: Execution metadata and totals.
+- `output/pipeline.log`: Structured application logs.
