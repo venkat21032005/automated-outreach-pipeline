@@ -1,162 +1,112 @@
 # Automated Outreach Pipeline
 
-An automated, production-grade Node.js command-line application and visual monitor dashboard for outbound lead generation. 
+A single-command Node.js CLI that turns one seed company domain into a reviewed
+list of personalized outreach emails:
 
-The application executes a 4-stage pipeline:
-1. **Ocean.io Integration**: Extracts lookalike company domains for a given target domain.
-2. **Prospeo Integration**: Scrapes contact details for target domains and filters for decision-makers (CEO, CTO, Founder, VP, Head).
-3. **Eazyreach Integration**: Enriches LinkedIn profile URLs to retrieve validated work email addresses.
-4. **Brevo Integration**: Generates personalized outreach templates and handles transactional cold email dispatching, protected by a safety checkpoint verification.
+`Ocean.io -> Prospeo -> Eazyreach -> safety checkpoint -> Brevo`
 
----
+Every stage feeds the next automatically. The only manual input is the seed
+domain, followed by the required yes/no safety confirmation immediately before
+sending.
 
-## Architecture Diagram
+## Setup
 
-The codebase is built on **Modular Clean Architecture**, separating utilities, services, orchestration, and interface layers:
+Requirements: Node.js 18+ and API access for all four vendors.
 
-```mermaid
-graph TD
-    A[CLI Entrypoint: index.js] --> B[Pipeline Manager: outreachPipeline.js]
-    A --> C[Express Dashboard Server: server.js]
-    C -->|Reads data files| D[(Data Folder: data/)]
-    
-    B --> E[Ocean.service]
-    B --> F[Prospeo.service]
-    B --> G[Eazyreach.service]
-    B --> H[Brevo.service]
-    
-    E -->|1. Find Lookalikes| D
-    F -->|2. Scrape Contacts| D
-    G -->|3. Enrich Emails| D
-    H -->|4. Dispatch Cold Emails| I((Brevo API / SMTP))
-    
-    subgraph Services Layer
-    E
-    F
-    G
-    H
-    end
-    
-    subgraph Utilities Layer
-    J[retry.js: Backoff & 429]
-    K[validator.js: RegEx]
-    L[logger.js: Winston]
-    end
-    
-    E & F & G & H -.->|Uses| J
-    E & F & G & H -.->|Uses| K
-    E & F & G & H -.->|Uses| L
-```
-
----
-
-## Features
-
-- **Commander.js CLI Parser**: Run pipeline executions cleanly using `node src/index.js <domain>`.
-- **Hybrid Mock/Live Core**: Bypasses missing API credentials by defaulting to high-quality mock lookup lists, contact scrapers, email verification records, and Brevo delivery mocks when `MOCK_MODE=true` is set.
-- **Fail-Safe Resume Support**: Continually caches the pipeline state to a file (`data/pipelineState.json`), letting the user resume from interrupted execution using the `--resume` option.
-- **Deduplication Engine**: Filters out duplicate companies in Stage 1 and duplicate contacts/emails in Stage 2 & 3.
-- **Compliant Exponential Retry Utility**: Handles temporary connection drops and checks for HTTP `429` status to sleep for durations specified by the `Retry-After` header.
-- **Winston Logger**: Integrates detailed console logs with level color coding and JSON structured file logs in the `logs/` directory.
-- **CSV Exporter**: Generates a clean tabular CSV report at `data/outreach_summary.csv` when the `--csv` flag is used.
-- **Express Monitoring Dashboard**: Serves a sleek, dark glassmorphic UI page at **http://localhost:3000** allowing developers to monitor lookalike search outcomes, parsed names/job roles, and email dispatch status in real time.
-
----
-
-## Environment Variables
-
-Create a `.env` file based on `.env.example`:
-
-```env
-# Server Port (if running Express server)
-PORT=3000
-
-# Pipeline Mode
-# When MOCK_MODE is true, services return simulated data without calling live APIs.
-# Set to false to use actual API credentials.
-MOCK_MODE=true
-
-# Logging Level (error, warn, info, debug)
-LOG_LEVEL=info
-
-# API Keys (Provide real credentials here when MOCK_MODE=false)
-OCEAN_API_KEY=your_ocean_api_key_here
-PROSPEO_API_KEY=your_prospeo_api_key_here
-EAZYREACH_API_KEY=your_eazyreach_api_key_here
-BREVO_API_KEY=your_brevo_api_key_here
-
-# Brevo Email Configuration
-BREVO_SENDER_EMAIL=outreach@yourdomain.com
-BREVO_SENDER_NAME="Outreach Team"
-```
-
----
-
-## Installation Steps
-
-1. **Clone or navigate to the project directory:**
-   ```bash
-   cd automated-outreach-pipeline
-   ```
-2. **Install Dependencies:**
-   ```bash
-   npm install
-   ```
-3. **Environment Setup:**
-   ```bash
-   cp .env.example .env
-   ```
-
----
-
-## Running the Project
-
-### 1. Mock Mode
-To test the pipeline out-of-the-box using the built-in high-fidelity simulated database:
 ```bash
-node src/index.js google.com --mock --csv --yes
+npm install
+copy .env.example .env
 ```
 
-### 2. Live API Mode
-To query the actual service API endpoints:
-1. Set `MOCK_MODE=false` in `.env` and fill in your API credentials.
-2. Run the command:
-   ```bash
-   node src/index.js google.com --csv
-   ```
+Fill in `.env` with real API credentials and a Brevo-verified sender. Eazyreach
+accepts LinkedIn profile URLs as enrichment inputs, but still requires either an
+auth token or the `clientId` and `clientSecret` used to create one.
 
-### 3. Monitoring Dashboard
-To watch the pipeline process data in real time:
+The CLI validates all four integrations before sourcing begins, preventing API
+credits from being spent when a required credential is missing.
+
+Run the pipeline:
+
 ```bash
-node src/index.js google.com --mock --server
+node src/index.js stripe.com
 ```
-Open **http://localhost:3000** in your browser.
 
----
+At the checkpoint, review the summary and recipients. Emails are sent only when
+the operator types exactly `yes`. Any other response, including a non-interactive
+terminal, cancels sending.
 
-## API Integrations Detail
+## Architecture
 
-1. **Ocean.io** (`src/services/ocean.service.js`):
-   - Hits lookalike lookup endpoints using Bearer Token authentication (`Authorization: Bearer <key>`).
-2. **Prospeo** (`src/services/prospeo.service.js`):
-   - Queries B2B contact lists using the custom Header key authentication `X-KEY`. Filters profiles by executive job titles.
-3. **Eazyreach** (`src/services/eazyreach.service.js`):
-   - *Validation Status:* EazyReach does not offer an official public API for programmatically converting LinkedIn URLs to emails. This service was validated using the official product workflow (account registration, credit wallet, browser extension, and web enrichment UI). Under `MOCK_MODE=false`, the service outputs a warning and returns `null` to comply with terms, while mock mode remains fully operational for end-to-end dry runs.
-4. **Brevo** (`src/services/brevo.service.js`):
-   - Communicates with SMTP Transactional API using the `api-key` header to dispatch cold templates.
+- `src/index.js`: CLI parsing and seed-domain validation
+- `src/clients/`: one authenticated HTTP wrapper per vendor
+- `src/services/pipelineService.js`: stage orchestration and persistence
+- `src/services/dedupeService.js`: deterministic contact deduplication
+- `src/services/checkpointService.js`: terminal summary and send confirmation
+- `src/services/emailComposer.js`: personalized subject and body
+- `src/utils/retry.js`: exponential backoff for network errors, HTTP 429, and 5xx
+- `src/utils/normalize.js`: common contact shape and field cleanup
 
----
+The normalized contact shape is:
 
-## Error Handling & Retry Logic
+```js
+{
+  fullName,
+  firstName,
+  title,
+  companyName,
+  companyDomain,
+  linkedinUrl,
+  workEmail,
+  emailStatus
+}
+```
 
-- **Exponential Backoff**: Configured inside `src/utils/retry.js`, the retry engine retries failed calls by scaling wait intervals (`delay * factor`).
-- **429 Rate-Limit Compliance**: The retry wrapper parses the `Retry-After` header. If the endpoint responds with `429 Too Many Requests` and provides a delay duration, the script sleeps for the exact duration requested.
-- **Fail-Fast for Client Errors**: Errors such as `401 Unauthorized` or `404 Not Found` bypass retries and fail immediately to prevent credential lockout or unnecessary API billing.
+Prospeo lookups, Eazyreach enrichments, and Brevo sends use bounded concurrent
+workers backed by `Promise.allSettled`. An individual failed domain, contact, or
+delivery is recorded and does not crash the remaining work.
 
----
+Deduplication precedence is LinkedIn URL, then email, then
+`companyDomain + fullName`. Only records with both a LinkedIn URL and a verified,
+syntactically valid work email reach the checkpoint.
 
-## Future Improvements
+## API Integration Notes
 
-1. **OAuth2 Integrations**: Support secure OAuth2 consent flows for direct calendar and email client integrations (e.g. Gmail/Outlook API).
-2. **Domain Warming & Verification**: Integrate SPF, DKIM, and DMARC checking utilities before cold mailing.
-3. **Queueing System**: Integrate BullMQ/Redis to support high-throughput parallel workers.
+Brevo uses its transactional email endpoint. Prospeo uses its person-search
+endpoint and paginates results. Ocean.io uses `X-Api-Token` authentication and
+its documented `lookalikeDomains` filter with `searchAfter` cursor pagination.
+Eazyreach uses its documented `/b2b/linkedin-emails` endpoint.
+
+For a demo, use low page limits and a Brevo test sender/account. Do not type
+`yes` unless the displayed recipients are approved for outreach. Confirm that
+your sending complies with applicable consent, opt-out, and anti-spam rules.
+
+## Output
+
+Each run writes:
+
+- `output/leads.json`: enriched and deduplicated leads, including non-sendable leads
+- `output/sent.json`: successful Brevo deliveries, or an empty array when cancelled
+- `output/errors.json`: item-level partial failures with stage and HTTP details
+- `output/summary.json`: checkpoint and final counts
+- `output/pipeline.log`: structured execution logs
+
+Output files are overwritten per run so the four artifacts describe one
+consistent execution.
+
+## Error Handling
+
+- HTTP 429 and 5xx responses retry with exponential backoff.
+- `Retry-After` is honored when present.
+- Timeouts and network failures retry.
+- HTTP 4xx responses other than 429 fail immediately and are recorded.
+- Missing contacts, LinkedIn URLs, emails, or verified statuses are skipped.
+- Failed enrichments and deliveries do not stop other contacts.
+
+## Tests
+
+```bash
+npm test
+```
+
+Tests cover validation, retry behavior, deduplication, and bounded partial-failure
+processing without calling vendor APIs.

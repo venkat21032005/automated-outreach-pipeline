@@ -11,7 +11,7 @@ jest.mock('../src/utils/logger', () => ({
 describe('Retry Utility Tests', () => {
   test('should succeed immediately if the function resolves', async () => {
     const fn = jest.fn().mockResolvedValue('success');
-    const result = await withRetry(fn, { retries: 2, delay: 5 });
+    const result = await withRetry(fn, { retries: 2, baseDelayMs: 5 });
 
     expect(result).toBe('success');
     expect(fn).toHaveBeenCalledTimes(1);
@@ -27,7 +27,7 @@ describe('Retry Utility Tests', () => {
       return 'recovered';
     });
 
-    const result = await withRetry(fn, { retries: 3, delay: 5, factor: 1.5 });
+    const result = await withRetry(fn, { retries: 3, baseDelayMs: 5, factor: 1.5 });
 
     expect(result).toBe('recovered');
     expect(fn).toHaveBeenCalledTimes(3);
@@ -36,7 +36,7 @@ describe('Retry Utility Tests', () => {
   test('should fail and throw if maximum retries are reached', async () => {
     const fn = jest.fn().mockRejectedValue(new Error('Persistent error'));
 
-    await expect(withRetry(fn, { retries: 2, delay: 5 }))
+    await expect(withRetry(fn, { retries: 2, baseDelayMs: 5 }))
       .rejects.toThrow('Persistent error');
 
     expect(fn).toHaveBeenCalledTimes(3); // 1 initial + 2 retries
@@ -48,7 +48,7 @@ describe('Retry Utility Tests', () => {
     
     const fn = jest.fn().mockRejectedValue(clientError);
 
-    await expect(withRetry(fn, { retries: 2, delay: 5 }))
+    await expect(withRetry(fn, { retries: 2, baseDelayMs: 5 }))
       .rejects.toThrow('Request failed with status 404');
 
     expect(fn).toHaveBeenCalledTimes(1); // Aborts immediately
@@ -73,7 +73,7 @@ describe('Retry Utility Tests', () => {
     });
 
     const startTime = Date.now();
-    const result = await withRetry(fn, { retries: 1, delay: 5 });
+    const result = await withRetry(fn, { retries: 1, baseDelayMs: 5 });
     const duration = Date.now() - startTime;
 
     expect(result).toBe('success');

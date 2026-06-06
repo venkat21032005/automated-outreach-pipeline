@@ -16,6 +16,8 @@ yarn-debug.log*
 .env.prod
 
 # Pipeline runtime cache and outputs
+output/*
+!output/.gitkeep
 data/pipelineState.json
 data/similarCompanies.json
 data/contacts.json
