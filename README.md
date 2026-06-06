@@ -141,7 +141,7 @@ Open **http://localhost:3000** in your browser.
 2. **Prospeo** (`src/services/prospeo.service.js`):
    - Queries B2B contact lists using the custom Header key authentication `X-KEY`. Filters profiles by executive job titles.
 3. **Eazyreach** (`src/services/eazyreach.service.js`):
-   - Enriches LinkedIn profiles into verified emails using Bearer Token authentication.
+   - *Validation Status:* EazyReach does not offer an official public API for programmatically converting LinkedIn URLs to emails. This service was validated using the official product workflow (account registration, credit wallet, browser extension, and web enrichment UI). Under `MOCK_MODE=false`, the service outputs a warning and returns `null` to comply with terms, while mock mode remains fully operational for end-to-end dry runs.
 4. **Brevo** (`src/services/brevo.service.js`):
    - Communicates with SMTP Transactional API using the `api-key` header to dispatch cold templates.
 
