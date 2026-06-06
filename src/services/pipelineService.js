@@ -108,7 +108,7 @@ class PipelineService {
     const sendResults = await mapSettledWithConcurrency(
       recipients,
       this.config.concurrency,
-      (contact) => this.brevo.send(contact, composeEmail(contact))
+      (contact) => this.brevo.send(contact, composeEmail(contact, this.config.brevo.senderName))
     );
     const sent = this.collectResults(sendResults, 'Brevo');
     summary.sent = sent.length;
