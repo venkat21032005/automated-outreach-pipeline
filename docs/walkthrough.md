@@ -134,3 +134,13 @@ To prevent a single API error from crashing the entire execution, the pipeline i
 - **Promise.allSettled**: Processes target domains and contact list enrichments concurrently. If a single domain lookup fails, the rest of the batch completes normally.
 - **Partial Failure Recording**: Any failed HTTP requests are translated into standard error records (containing the vendor, status code, and response body) and saved to `output/errors.json`.
 - **Automatic Retry Wrapper**: Built-in exponential backoff retry mechanism (`src/utils/retry.js`) that retries transient failures (status 429, 500+) and parses rate-limiting headers to pause request threads dynamically.
+
+---
+
+## 6. Known Limitations
+
+When running this pipeline in production, the following limitations should be noted:
+1. **API Rate-Limiting Overhead**: To prevent rate limit blockages on the Prospeo Starter plan (1 request/sec), the CLI introduces a proactive `1100ms` delay between requests. This makes the execution slower but guarantees key safety.
+2. **Brevo Sender Domain Verification**: Brevo requires that the sender identity (`BREVO_SENDER_EMAIL` in `.env`) has been verified and matches the account’s domain settings. Standard outbound transactions fail if the email is not verified on the account.
+3. **In-Memory Resumption**: The current pipeline state checkpoint is stored in-memory during execution. If the Node process is killed mid-run, you must run the pipeline from Stage 1 again.
+4. **EazyReach REST Availability**: EazyReach lacks public developer API interfaces, requiring the pipeline to fallback to Prospeo's `/enrich-person` developer endpoint for automated LinkedIn-to-email resolution.

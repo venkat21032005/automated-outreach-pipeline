@@ -1,1 +1,12 @@
-[]
+[
+  {
+    "__run_type__": "SIMULATION OUTPUT",
+    "stage": "Prospeo",
+    "message": "Request failed with status code 429",
+    "status": 429,
+    "response": {
+      "error": "Rate limit exceeded. Reset in 15 seconds."
+    },
+    "occurredAt": "2026-06-06T11:51:26.130Z"
+  }
+]

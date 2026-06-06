@@ -1,5 +1,6 @@
 {
-  "seedDomain": "seedcompany.com",
+  "__run_type__": "SIMULATION OUTPUT",
+  "seedDomain": "stripe.com",
   "domainsFound": 1,
   "contactsFound": 1,
   "verifiedEmailsFound": 1,

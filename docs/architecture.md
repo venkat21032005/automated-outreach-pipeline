@@ -66,13 +66,21 @@ The diagram below illustrates the exact data transformation flow from seed domai
 
 ---
 
-## 3. Service Boundaries & Isolation
+## 3. Service Boundaries & Deduplication Strategy
 
 To maintain high maintainability, each module has strict, clear responsibilities:
 - **`src/clients/`**: Responsible only for HTTP transmission, authentication headers, query parameters formatting, and vendor response layout mapping. No business rules or flow orchestration logic exists here.
 - **`src/services/dedupeService.js`**: Pure utility responsible for deterministic filtering of contact arrays. It contains no state or side effects.
 - **`src/services/emailComposer.js`**: Pure utility formatting outreach body templates. It escapes HTML variables safely to prevent template injection vulnerabilities.
 - **`src/utils/retry.js`**: Encapsulates all transient request failure recovery logic.
+
+### Deduplication Strategy & Priority Rules
+Deduplication is executed in a multi-pass structure to prevent sending duplicate emails to the same prospect:
+1. **Pass 1 (Pre-Enrichment)**: Sourced contacts are filtered before Stage 3 LinkedIn-to-email enrichment using the LinkedIn URL. If multiple listings point to the same LinkedIn URL, they are collapsed.
+2. **Pass 2 (Post-Enrichment)**: Once emails are resolved, a final deduplication pass runs using:
+   - **Verified Email**: Matches exact resolved email addresses.
+   - **Identity Signature**: Compares lowercase `companyDomain | fullName` signatures. This catches cases where the same person is returned with different email variants or empty LinkedIn URLs.
+3. **Priority Order**: The filter processes items in sequence, keeping the first occurrence and recording duplicate counts.
 
 ---
 
@@ -128,3 +136,13 @@ The team made the explicit decision to **reject undocumented/private EazyReach e
 - **Security & Authorization**: Bypassing browser-based session controls requires storing raw user cookies or authorization tokens in cleartext, introducing credentials exposure risks.
 - **Terms of Service Compliance**: Scraping or hitting undocumented endpoints often violates platform Terms of Service, creating legal liabilities and risk of IP bans.
 - **Production Grade Fallback**: To keep the outreach pipeline fully automated, robust, and compliant, Stage 3 was routed to Prospeo's officially supported `/enrich-person` REST endpoint. This provides identical functionality (LinkedIn URL to verified work email resolution) via documented developer keys with rate-limiting header supports.
+
+---
+
+## 8. Error Handling & Isolation Strategy
+
+To ensure high availability and prevent single-point-of-failure (SPOF) disruptions across the pipeline:
+1. **Isolated Stage Failures**: Any failures in vendor lookup stages are caught at the batch-item level. If Ocean.io fails, the orchestrator handles it gracefully, logs the error, writes partial progress, and exits cleanly.
+2. **Item-Level Failures in Loops**: Inside contact scraping (Prospeo) and email enrichment loops, error isolation is enforced using `Promise.allSettled` mapping workers. An HTTP failure for a single company domain or single LinkedIn URL will NOT reject the entire batch; instead, it writes a trace record to `errors.json` and continues processing other items.
+3. **Outbound Failure Recovery**: Outreach dispatch via Brevo uses individual SMTP transaction calls. If a specific recipient email address is rejected or fails, the orchestrator logs the message, captures the rejection state, and continues to process other queued recipients.
+4. **Structured Error Logging**: All captured failures are normalized into standard objects containing the vendor stage, error message, HTTP status code, and response body, saving them to `output/errors.json` for troubleshooting.
