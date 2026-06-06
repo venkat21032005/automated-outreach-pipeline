@@ -5,8 +5,12 @@ const { isValidEmail } = require('../utils/validator');
 class EazyreachService {
   constructor() {
     this.apiKey = process.env.EAZYREACH_API_KEY;
-    // Fall back to Mock mode if explicit in env, if key is missing, or is the example placeholder
-    this.isMock = process.env.MOCK_MODE === 'true' || !this.apiKey || this.apiKey === 'your_eazyreach_api_key_here';
+    this.sessionToken = process.env.EAZYREACH_SESSION_TOKEN;
+    
+    // Determine mode: Mock, Session-JWT (GraphQL), or REST API
+    this.isSessionMode = !!this.sessionToken && this.sessionToken !== 'your_session_token_here';
+    this.isMock = (process.env.MOCK_MODE === 'true' || (!this.apiKey && !this.isSessionMode)) || 
+                  (this.apiKey === 'your_eazyreach_api_key_here' && !this.isSessionMode);
   }
 
   /**
@@ -23,6 +27,7 @@ class EazyreachService {
       return null;
     }
 
+    // --- 1. MOCK MODE ---
     if (this.isMock) {
       logger.info(`[Eazyreach Mock] Finding email for LinkedIn URL: ${linkedinUrl}`);
       // Simulate API latency
@@ -68,6 +73,55 @@ class EazyreachService {
       return null;
     }
 
+    // --- 2. ADVANCED SESSION JWT MODE (GraphQL Reverse-Engineered) ---
+    if (this.isSessionMode) {
+      logger.info(`[Eazyreach GraphQL] Enriching profile via session token...`);
+      try {
+        // Since Eazyreach uses a Hasura GraphQL Backend, we perform a POST to their GraphQL router.
+        // We use the custom query variable from env or default to standard structure.
+        const query = process.env.EAZYREACH_GRAPHQL_QUERY || `
+          mutation EnrichProfile($linkedinUrl: String!) {
+            enrich(linkedin_url: $linkedinUrl) {
+              email
+              status
+            }
+          }
+        `;
+
+        const response = await axios.post(
+          'https://db.subspace.money/v1/graphql',
+          {
+            query,
+            variables: { linkedinUrl }
+          },
+          {
+            headers: {
+              'Authorization': `Bearer ${this.sessionToken}`,
+              'Content-Type': 'application/json'
+            },
+            timeout: 12000
+          }
+        );
+
+        // Parse standard GraphQL response format
+        const data = response.data && response.data.data ? (response.data.data.enrich || response.data.data) : null;
+        if (data && data.email) {
+          if (isValidEmail(data.email)) {
+            logger.info(`[Eazyreach GraphQL] Found verified email: ${data.email}`);
+            return data.email;
+          }
+        }
+
+        logger.warn(`[Eazyreach GraphQL] No verified email resolved in GraphQL response: ${JSON.stringify(response.data)}`);
+        return null;
+      } catch (error) {
+        const errMsg = error.response ? `GraphQL HTTP ${error.response.status}: ${JSON.stringify(error.response.data)}` : error.message;
+        logger.error(`[Eazyreach GraphQL] Connection failed: ${errMsg}`);
+        throw error;
+      }
+    }
+
+    // --- 3. STANDARD REST API MODE (Fallback if public API keys are released) ---
     logger.info(`[Eazyreach API] Querying email for LinkedIn: ${linkedinUrl}`);
     try {
       const response = await axios.post(
