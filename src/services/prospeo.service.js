@@ -58,10 +58,17 @@ class ProspeoService {
 
     logger.info(`[Prospeo API] Querying contacts for: ${cleanDomain}`);
     try {
-      // Prospeo Domain Search Endpoint
+      // Prospeo Search Person Endpoint (Latest API spec)
       const response = await axios.post(
-        'https://api.prospeo.io/v1/domain-search',
-        { domain: cleanDomain },
+        'https://api.prospeo.io/search-person',
+        {
+          filters: {
+            person_search: {
+              company_domain: cleanDomain
+            }
+          },
+          page: 1
+        },
         {
           headers: {
             'Content-Type': 'application/json',
@@ -71,7 +78,7 @@ class ProspeoService {
         }
       );
 
-      // Prospeo API returns structured contacts under response.results or response.data.results
+      // Prospeo API returns structured contacts under response.data.results or response.data.response.results
       const results = response.data && response.data.response ? response.data.response.results : (response.data ? response.data.results : []);
       if (!Array.isArray(results)) {
         logger.warn(`[Prospeo API] Response did not contain lists of results.`, response.data);
@@ -79,9 +86,14 @@ class ProspeoService {
       }
 
       const formattedContacts = results.map(contact => {
-        const name = contact.name ? `${contact.name.first || ''} ${contact.name.last || ''}`.trim() : 'Unknown';
-        const title = contact.title || '';
-        const linkedin = contact.linkedin || '';
+        // Support both latest search-person properties and legacy/mock formats
+        const name = contact.full_name || 
+                     (contact.first_name || contact.last_name 
+                       ? `${contact.first_name || ''} ${contact.last_name || ''}`.trim() 
+                       : (contact.name && typeof contact.name === 'object' ? `${contact.name.first || ''} ${contact.name.last || ''}`.trim() : 'Unknown'));
+        
+        const title = contact.current_job_title || contact.headline || contact.title || '';
+        const linkedin = contact.linkedin_url || contact.linkedin || '';
         const companyName = contact.company && contact.company.name ? contact.company.name : cleanDomain.split('.')[0].toUpperCase();
         
         return {
