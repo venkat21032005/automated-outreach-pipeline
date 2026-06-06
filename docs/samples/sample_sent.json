@@ -1,0 +1,14 @@
+[
+  {
+    "fullName": "Alice Smith",
+    "firstName": "Alice",
+    "title": "CEO",
+    "companyName": "Lookalike Inc",
+    "companyDomain": "lookalike.com",
+    "linkedinUrl": "https://www.linkedin.com/in/alicesmith",
+    "workEmail": "alice.smith@lookalike.com",
+    "emailStatus": "verified",
+    "messageId": "simulated-msg-id-12345",
+    "sentAt": "2026-06-06T11:51:26.143Z"
+  }
+]
