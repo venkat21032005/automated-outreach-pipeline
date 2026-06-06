@@ -51,9 +51,7 @@ An orchestration layer (`PipelineService`) manages the flow of data across the p
 
 ## 2. Pipeline Data Flow
 
-The diagram below illustrates the exact data transformation flow from seed domain to outreach sending:
-
-![Outreach Pipeline Flow Diagram](images/architecture.png)
+The system processes data sequentially from the initial seed domain to the final Brevo outreach sending, following these structured transformations:
 
 1. **Seed Domain Sourcing**: The seed domain (e.g. `notion.so`) is normalized and passed to `OceanClient`.
 2. **Lookalike Companies Sourcing**: `OceanClient` returns lookalike domains (e.g., `obsidian.md`, `roamresearch.com`).

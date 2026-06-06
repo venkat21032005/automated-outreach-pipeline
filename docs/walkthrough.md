@@ -50,39 +50,24 @@ Before emails are dispatched, the pipeline displays an interactive safety checkp
 
 ---
 
-## 3. Visual Execution Evidence
+## 3. Command-Line Execution Trace
 
-Below is a walk-through of a successful execution of the pipeline CLI, showing the console output and logs.
+Below is a walk-through trace of a successful execution of the pipeline CLI, describing each console log event:
 
 ### Step 1: Starting the Pipeline
-The CLI parses the seed company domain, reads environment configurations, and initializes the pipeline service.
-
-![CLI Pipeline Startup](../images/01_pipeline_start.png)
-*Caption: CLI startup parsing parameters, displaying loaded environment configuration, and initiating the lookalike company search.*
+The CLI parses the seed company domain, reads environment configurations, and initializes the pipeline service, verifying that all keys are set.
 
 ### Step 2: Sourcing Company Lookalikes
-The application queries Ocean.io to fetch similar domains while applying exclusions.
-
-![Ocean.io Sourcing](../images/02_ocean_lookalikes.png)
-*Caption: Ocean.io stage completes, successfully fetching similar lookalike domains and writing logs.*
+The application queries Ocean.io to fetch similar domains while applying exclusions, logging company counts.
 
 ### Step 3: Scraping Decision-Makers
-The pipeline queries Prospeo for each lookalike domain to find decision-makers and their LinkedIn URLs, keeping track of rate limits and sleep delays.
-
-![Prospeo Search](../images/03_prospeo_contacts.png)
-*Caption: Sourcing decision-makers for similar domains, demonstrating rate-limiting delays and filters.*
+The pipeline queries Prospeo for each lookalike domain to find decision-makers and their LinkedIn profile URLs, applying proactive sleep delays to preserve plan limits.
 
 ### Step 4: Safety Checkpoint Console Table
-Once LinkedIn-to-email enrichment is complete, the application formats a summary metrics table and lists the target recipients.
-
-![Safety Checkpoint Table](../images/04_safety_checkpoint.png)
-*Caption: Safety checkpoint showing domains found, contacts found, verified emails, and requiring operator confirmation.*
+Once LinkedIn-to-email enrichment is complete, the application formats a summary metrics table (displaying domains found, contacts found, verified emails, and final recipients) and prints it as a clean terminal table, holding for keyboard input.
 
 ### Step 5: Brevo Transactional Sending
-If the operator inputs `yes`, the pipeline composes personalized templates and dispatches the outreach emails via Brevo.
-
-![Brevo SMTP Dispatch](../images/05_brevo_dispatch.png)
-*Caption: Dispatched transactional emails via Brevo, rendering logs and final completed timestamps.*
+If the operator inputs `yes`, the pipeline composes personalized templates and dispatches the outreach emails via Brevo, printing transaction IDs and saving log files.
 
 ---
 

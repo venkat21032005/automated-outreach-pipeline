@@ -31,8 +31,6 @@ node src/index.js stripe.com
 
 The system runs as a sequential pipeline with deterministic handoffs:
 
-![Pipeline Architecture Diagram](docs/images/architecture.png)
-
 *For more details on service boundaries and database schemas, see the [Architecture Document](docs/architecture.md).*
 
 ---
@@ -49,10 +47,7 @@ Below is the layout of the codebase. Every module is isolated and follows single
 ├── README.md                    # Main recruiter documentation and guide
 ├── docs/                        # Complete documentation package
 │   ├── architecture.md          # Technical specifications and system design
-│   ├── walkthrough.md           # Step-by-step execution guide with screenshots
-│   ├── images/                  # Diagrams and visual execution evidence
-│   │   ├── architecture.png     # Pipeline flowchart diagram
-│   │   └── *.png                # Terminal run screenshots
+│   ├── walkthrough.md           # Step-by-step execution guide (no images)
 │   └── samples/                 # Verified sample JSON output payloads
 │       ├── sample_leads.json    # Sourced decision-maker records
 │       ├── sample_sent.json     # Successful outreach dispatch log
@@ -87,7 +82,6 @@ Below is the layout of the codebase. Every module is isolated and follows single
 
 - For detailed step-by-step execution guides and console captures, see the [Walkthrough Guide](docs/walkthrough.md).
 - To inspect output formats, view the [Sample Outputs](docs/samples/).
-- To view visual screenshots of the CLI running, view the [Images Directory](docs/images/).
 
 ---
 
