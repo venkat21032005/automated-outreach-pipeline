@@ -18,11 +18,6 @@ function config() {
       pageSize: 25,
       maxPages: 1
     },
-    eazyreach: {
-      authToken: 'valid-eazyreach-token',
-      baseUrl: 'https://api.superflow.test',
-      enrichPath: '/b2b/linkedin-emails'
-    },
     requestTimeoutMs: 1000,
     retry: { retries: 0, baseDelayMs: 1 }
   };
@@ -65,10 +60,10 @@ test('Prospeo normalizes person and company result objects', async () => {
 test('Eazyreach submits a LinkedIn URL and accepts only verified email status', async () => {
   const client = new EazyreachClient(config());
   client.http.post = jest.fn().mockResolvedValue({
-    data: { emails: [{ email: 'ada@example.com', verification: 'verified' }] }
+    data: { person: { email: 'ada@example.com', email_status: 'verified' } }
   });
 
   const enriched = await client.enrichByLinkedin({ linkedinUrl: 'https://linkedin.com/in/ada' });
-  expect(client.http.post.mock.calls[0][1]).toEqual({ linkedinUrl: 'https://linkedin.com/in/ada' });
+  expect(client.http.post.mock.calls[0][1].data.linkedin_url).toEqual('https://linkedin.com/in/ada');
   expect(enriched).toMatchObject({ workEmail: 'ada@example.com', emailStatus: 'verified' });
 });

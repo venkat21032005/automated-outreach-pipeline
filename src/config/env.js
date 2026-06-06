@@ -24,14 +24,6 @@ function loadEnv() {
       pageSize: positiveInt(process.env.PROSPEO_PAGE_SIZE, 25),
       maxPages: positiveInt(process.env.PROSPEO_MAX_PAGES, 5)
     },
-    eazyreach: {
-      authToken: process.env.EAZYREACH_AUTH_TOKEN || process.env.EAZYREACH_API_KEY,
-      clientId: process.env.EAZYREACH_CLIENT_ID,
-      clientSecret: process.env.EAZYREACH_CLIENT_SECRET,
-      baseUrl: process.env.EAZYREACH_BASE_URL || 'https://api.superflow.run',
-      authPath: process.env.EAZYREACH_AUTH_PATH || '/b2b/createAuthToken/',
-      enrichPath: process.env.EAZYREACH_ENRICH_PATH || '/b2b/linkedin-emails'
-    },
     brevo: {
       apiKey: process.env.BREVO_API_KEY,
       baseUrl: process.env.BREVO_BASE_URL || 'https://api.brevo.com/v3',

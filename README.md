@@ -18,12 +18,9 @@ npm install
 copy .env.example .env
 ```
 
-Fill in `.env` with real API credentials and a Brevo-verified sender. Eazyreach
-accepts LinkedIn profile URLs as enrichment inputs, but still requires either an
-auth token or the `clientId` and `clientSecret` used to create one.
+Fill in `.env` with real API credentials (Ocean.io, Prospeo, and Brevo) and a Brevo-verified sender. Since EazyReach does not offer a public developer API, Stage 3 automatically falls back to Prospeo's officially documented `/enrich-person` endpoint using your Prospeo key to enrich the LinkedIn URLs.
 
-The CLI validates all four integrations before sourcing begins, preventing API
-credits from being spent when a required credential is missing.
+The CLI validates the API integrations before sourcing begins, preventing API credits from being spent when a required credential is missing.
 
 Run the pipeline:
 
@@ -71,10 +68,10 @@ syntactically valid work email reach the checkpoint.
 
 ## API Integration Notes
 
-Brevo uses its transactional email endpoint. Prospeo uses its person-search
-endpoint and paginates results. Ocean.io uses `X-Api-Token` authentication and
-its documented `lookalikeDomains` filter with `searchAfter` cursor pagination.
-Eazyreach uses its documented `/b2b/linkedin-emails` endpoint.
+- **Brevo**: Hitting the officially documented SMTP transactional email endpoint `/smtp/email` using `api-key` header.
+- **Prospeo**: Hitting the officially documented `/search-person` and `/enrich-person` endpoints using `X-KEY` header, with page limit controls.
+- **Ocean.io**: Hitting the officially documented lookalike company lookup `/v3/search/companies` using `X-Api-Token` header.
+- **EazyReach**: Because EazyReach does not provide a developer REST API, Stage 3 is executed using Prospeo's documented `/enrich-person` endpoint to resolve LinkedIn URLs to verified work emails.
 
 For a demo, use low page limits and a Brevo test sender/account. Do not type
 `yes` unless the displayed recipients are approved for outreach. Confirm that
