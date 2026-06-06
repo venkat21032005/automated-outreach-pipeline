@@ -32,6 +32,9 @@ class EazyreachClient {
         };
       }
 
+      const { sleep } = require('../utils/retry');
+      await sleep(250);
+
       const response = await withRetry(
         () => axios.post(
           'https://api.prospeo.io/enrich-person',

@@ -18,10 +18,13 @@ class ProspeoClient {
     const contacts = [];
 
     for (let page = 1; page <= this.config.prospeo.maxPages; page += 1) {
+      const { sleep } = require('../utils/retry');
+      await sleep(1100);
+
       const response = await withRetry(
         () => this.http.post(this.config.prospeo.searchPath, {
           filters: {
-            company: { websites: { include: [domain] } },
+            person_search: domain,
             person_seniority: { include: ['C-Suite', 'Vice President'] }
           },
           page

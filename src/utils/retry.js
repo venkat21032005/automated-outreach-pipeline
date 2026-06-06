@@ -19,7 +19,27 @@ async function withRetry(operation, options = {}) {
       const retryable = !status || status === 429 || status >= 500;
       if (!retryable || attempt >= retries) throw error;
 
-      const retryAfter = parseRetryAfter(error.response?.headers?.['retry-after']);
+      const headers = error.response?.headers || {};
+      const retryAfterHeader = headers['retry-after'];
+      const xSecondReset = headers['x-second-reset-seconds'];
+      const xMinuteReset = headers['x-minute-reset-seconds'];
+
+      let retryAfter = parseRetryAfter(retryAfterHeader);
+
+      if (xSecondReset) {
+        const xSecondMs = Number.parseFloat(xSecondReset) * 1000;
+        if (Number.isFinite(xSecondMs)) {
+          retryAfter = Math.max(retryAfter || 0, xSecondMs + 100);
+        }
+      }
+
+      if (xMinuteReset) {
+        const xMinuteMs = Number.parseFloat(xMinuteReset) * 1000;
+        if (Number.isFinite(xMinuteMs)) {
+          retryAfter = Math.max(retryAfter || 0, xMinuteMs + 500);
+        }
+      }
+
       const delayMs = retryAfter ?? baseDelayMs * factor ** attempt;
       attempt += 1;
       logger.warn(`${label} failed; retrying`, { attempt, status, delayMs });
