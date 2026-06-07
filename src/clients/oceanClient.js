@@ -19,7 +19,6 @@ class OceanClient {
     let searchAfter;
 
     for (let page = 1; page <= this.config.ocean.maxPages; page += 1) {
-      // TODO: Confirm request fields and response pagination against the customer's Ocean.io plan/docs.
       const response = await withRetry(
         () => this.http.post(this.config.ocean.lookalikePath, {
           size: this.config.ocean.pageSize,
