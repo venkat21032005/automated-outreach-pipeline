@@ -17,6 +17,11 @@ function normalizeContact(raw = {}, fallbackDomain = '') {
   const fullName = raw.fullName || raw.full_name || raw.name?.full ||
     (typeof raw.name === 'string' ? raw.name : `${firstName} ${lastName}`.trim());
 
+  // Handle case where raw.email is an object (Prospeo search-person API) vs string
+  const emailObj = raw.email && typeof raw.email === 'object' ? raw.email : null;
+  const emailStr = emailObj ? emailObj.email : (raw.workEmail || raw.work_email || raw.email || '');
+  const statusStr = emailObj ? emailObj.status : (raw.emailStatus || raw.email_status || raw.status || '');
+
   return {
     fullName: fullName || '',
     firstName: firstName || String(fullName || '').split(/\s+/)[0] || '',
@@ -24,8 +29,8 @@ function normalizeContact(raw = {}, fallbackDomain = '') {
     companyName: raw.companyName || raw.company_name || raw.company?.name || '',
     companyDomain: cleanDomain(raw.companyDomain || raw.company_domain || raw.company?.domain || fallbackDomain),
     linkedinUrl: cleanLinkedinUrl(raw.linkedinUrl || raw.linkedin_url || raw.linkedin || ''),
-    workEmail: String(raw.workEmail || raw.work_email || raw.email || '').trim().toLowerCase(),
-    emailStatus: String(raw.emailStatus || raw.email_status || raw.status || '').trim().toLowerCase()
+    workEmail: typeof emailStr === 'string' ? emailStr.trim().toLowerCase() : '',
+    emailStatus: typeof statusStr === 'string' ? statusStr.trim().toLowerCase() : ''
   };
 }
 
