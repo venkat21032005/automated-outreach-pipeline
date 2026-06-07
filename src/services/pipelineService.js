@@ -63,14 +63,27 @@ class PipelineService {
     const initialDedupe = dedupeContacts(rawContacts);
     logger.info('Prospeo stage complete', { contactsFound: rawContacts.length });
 
-    const enrichable = initialDedupe.contacts.filter((contact) => contact.linkedinUrl);
+    const alreadyVerified = [];
+    const enrichable = [];
+
+    for (const contact of initialDedupe.contacts) {
+      if (isValidEmail(contact.workEmail) && isVerifiedStatus(contact.emailStatus)) {
+        alreadyVerified.push(contact);
+      } else if (contact.linkedinUrl) {
+        enrichable.push(contact);
+      } else {
+        alreadyVerified.push(contact);
+      }
+    }
+
     const enrichmentResults = await mapSettledWithConcurrency(
       enrichable,
       this.config.concurrency,
       (contact) => this.eazyreach.enrichByLinkedin(contact)
     );
     const enriched = this.collectResults(enrichmentResults, 'Eazyreach');
-    const finalDedupe = dedupeContacts(enriched);
+    const allContacts = [...alreadyVerified, ...enriched];
+    const finalDedupe = dedupeContacts(allContacts);
     const recipients = finalDedupe.contacts.filter((contact) =>
       contact.linkedinUrl && isValidEmail(contact.workEmail) && isVerifiedStatus(contact.emailStatus)
     );
@@ -79,7 +92,7 @@ class PipelineService {
       seedDomain: domain,
       domainsFound: similarDomains.length,
       contactsFound: rawContacts.length,
-      verifiedEmailsFound: enriched.filter((contact) =>
+      verifiedEmailsFound: finalDedupe.contacts.filter((contact) =>
         isValidEmail(contact.workEmail) && isVerifiedStatus(contact.emailStatus)
       ).length,
       duplicatesRemoved: initialDedupe.duplicatesRemoved + finalDedupe.duplicatesRemoved,
