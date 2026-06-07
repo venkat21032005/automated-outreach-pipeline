@@ -24,7 +24,11 @@ class ProspeoClient {
       const response = await withRetry(
         () => this.http.post(this.config.prospeo.searchPath, {
           filters: {
-            person_search: domain,
+            company: {
+              websites: {
+                include: [domain]
+              }
+            },
             person_seniority: { include: ['C-Suite', 'Vice President'] }
           },
           page
