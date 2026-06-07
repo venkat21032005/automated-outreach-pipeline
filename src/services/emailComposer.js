@@ -3,19 +3,22 @@ function composeEmail(contact, senderName) {
   const company = contact.companyName || contact.companyDomain;
   const title = contact.title || 'leadership role';
   const signature = senderName || 'Outreach Team';
-  const subject = `A quick idea for ${company}`;
+  const subject = `outbound workflow at ${company}`;
   const textContent = `Hi ${firstName},
 
-I noticed your work as ${title} at ${company}. We help teams automate the manual parts of targeted outbound while keeping outreach relevant and reviewable.
+I saw you lead the team as ${title} at ${company}. 
 
-Would you be open to a brief conversation next week?
+We help outbound teams automate lead sourcing and verified email resolution (similar to how we built this pipeline) without losing personalization or running into rate limits.
+
+I put together a brief outline of how this reduces prospecting time by 80%. Worth a quick look?
 
 Best,
 ${signature}`;
 
   const htmlContent = `<p>Hi ${escapeHtml(firstName)},</p>
-<p>I noticed your work as ${escapeHtml(title)} at ${escapeHtml(company)}. We help teams automate the manual parts of targeted outbound while keeping outreach relevant and reviewable.</p>
-<p>Would you be open to a brief conversation next week?</p>
+<p>I saw you lead the team as ${escapeHtml(title)} at ${escapeHtml(company)}.</p>
+<p>We help outbound teams automate lead sourcing and verified email resolution (similar to how we built this pipeline) without losing personalization or running into rate limits.</p>
+<p>I put together a brief outline of how this reduces prospecting time by 80%. Worth a quick look?</p>
 <p>Best,<br>${escapeHtml(signature)}</p>`;
 
   return { subject, textContent, htmlContent };
