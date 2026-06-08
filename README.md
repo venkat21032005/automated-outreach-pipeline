@@ -131,6 +131,61 @@ During the pipeline implementation, an extensive architectural review was conduc
 
 ---
 
+## 📊 Sample Execution Output
+
+Below is a sample of the console safety checkpoint, generated JSON artifacts, and Brevo delivery metrics from a live run targeting `stripe.com`:
+
+### 1. Safety Checkpoint Preview
+```text
+==================================================
+        OUTBOUND OUTREACH SAFETY CHECKPOINT       
+==================================================
+Seed Domain:             stripe.com
+Lookalike Domains Found: 2
+Decision Makers Found:   39
+Verified Emails Found:   30
+Duplicates Removed:      0
+Final Recipients:        30
+==================================================
+```
+
+### 2. Output Summary (`output/summary.json`)
+```json
+{
+  "seedDomain": "stripe.com",
+  "domainsFound": 2,
+  "contactsFound": 39,
+  "verifiedEmailsFound": 30,
+  "duplicatesRemoved": 0,
+  "finalRecipients": 30
+}
+```
+
+### 3. Sample Lead Record (`output/leads.json`)
+```json
+{
+  "fullName": "Vivek Agarwal",
+  "title": "Vice President of Engineering",
+  "companyName": "Razorpay",
+  "workEmail": "v*****@razorpay.com",
+  "emailStatus": "verified"
+}
+```
+
+### 4. Brevo Delivery Results
+* **Emails Processed:** 30
+* **Delivered:** 26
+* **Opened:** 4
+
+### 5. Error Handling & Resilience
+* **Failed Enrichments:** 9 (recorded in `errors.json`)
+* **Successful Verified Recipients:** 30
+* **Final Recipients:** 30
+
+The pipeline uses `Promise.allSettled` and retry handling to isolate API failures. Partial enrichment failures do not terminate execution, allowing successful recipients to continue through the workflow.
+
+---
+
 ## 🛠️ Design Tradeoffs & Engineering Decisions
 
 ### Concurrency: `Promise.allSettled` vs `Promise.all`
