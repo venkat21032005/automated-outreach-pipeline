@@ -97,7 +97,7 @@ Below is the layout of the codebase. Every module is isolated and follows single
 | **Safety checkpoint before sending**             |   ✅   | [src/services/checkpointService.js](src/services/checkpointService.js) |
 | **Error handling**                               |   ✅   | [src/utils/retry.js](src/utils/retry.js) & `Promise.allSettled` |
 | **Rate-limit handling**                          |   ✅   | [src/utils/retry.js](src/utils/retry.js) (Header-based dynamic sleeping) |
-| **Automated tests**                              |   ✅   | [tests/](tests/) (12 Jest unit tests) |
+| **Automated tests**                              |   ✅   | [tests/](tests/) (16 Jest unit tests) |
 | **Output artifacts**                             |   ✅   | [src/services/pipelineService.js](src/services/pipelineService.js) (JSON files in `output/`) |
 
 ---
@@ -223,7 +223,7 @@ The pipeline uses `Promise.allSettled` and retry handling to isolate API failure
 
 ## 🧪 Testing Suite
 
-The application maintains comprehensive test coverage with **12 Jest unit tests** verifying critical logic:
+The application maintains comprehensive test coverage with **16 Jest unit tests** verifying critical logic:
 - **Clients (`tests/clients.test.js`)**: Validates request parameters and payload mapping for Ocean, Prospeo, and Stage 3 resolution.
 - **Retry Mechanics (`tests/retry.test.js`)**: Tests exponential delays, dynamic sleep resets, and header-based limit parsing.
 - **Deduplication (`tests/dedupeService.test.js`)**: Validates the priority ordering (LinkedIn URL > Email > Domain Identity) to ensure no duplicate contacts escape.
